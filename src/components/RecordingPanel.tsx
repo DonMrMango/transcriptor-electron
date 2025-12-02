@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { AppState } from '../App';
 import './RecordingPanel.css';
 
@@ -9,13 +9,23 @@ interface RecordingPanelProps {
   onBack: () => void;
 }
 
-export default function RecordingPanel({ state, onStop, onComplete, onBack }: RecordingPanelProps) {
+export interface RecordingPanelRef {
+  stopRecording: () => void;
+}
+
+const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
+  ({ state, onStop, onComplete, onBack }, ref) => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const isCancelledRef = useRef(false);
+
+  // Exponer el método stopRecording a través de la ref
+  useImperativeHandle(ref, () => ({
+    stopRecording: handleStop
+  }));
 
   useEffect(() => {
     if (state === 'recording' && !isPaused) {
@@ -218,4 +228,8 @@ export default function RecordingPanel({ state, onStop, onComplete, onBack }: Re
       </div>
     </div>
   );
-}
+});
+
+RecordingPanel.displayName = 'RecordingPanel';
+
+export default RecordingPanel;

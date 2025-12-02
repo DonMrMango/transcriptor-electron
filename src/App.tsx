@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import MenuPanel from './components/MenuPanel';
-import RecordingPanel from './components/RecordingPanel';
+import RecordingPanel, { RecordingPanelRef } from './components/RecordingPanel';
 import ResultPanel from './components/ResultPanel';
 import HistoryPanel from './components/HistoryPanel';
 
@@ -10,6 +10,7 @@ export type AppState = 'menu' | 'recording' | 'transcribing' | 'result' | 'histo
 function App() {
   const [state, setState] = useState<AppState>('menu');
   const [transcriptionResult, setTranscriptionResult] = useState<string>('');
+  const recordingPanelRef = useRef<RecordingPanelRef>(null);
 
   const handleStartRecording = () => {
     setState('recording');
@@ -32,6 +33,36 @@ function App() {
     setState('history');
   };
 
+  const handleToggleRecording = () => {
+    console.log('[SHORTCUT] Toggle recording called, current state:', state);
+
+    if (state === 'menu' || state === 'result' || state === 'history') {
+      // Si no hay grabación en curso, iniciar una nueva
+      console.log('[SHORTCUT] Starting new recording');
+      setState('recording');
+    } else if (state === 'recording') {
+      // Si hay una grabación en curso, detenerla
+      console.log('[SHORTCUT] Stopping recording');
+      if (recordingPanelRef.current) {
+        recordingPanelRef.current.stopRecording();
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Registrar el listener para el atajo de teclado
+    const toggleHandler = () => {
+      handleToggleRecording();
+    };
+
+    window.electronAPI.onToggleRecording(toggleHandler);
+
+    // Cleanup: remover el listener cuando el componente se desmonte
+    return () => {
+      window.electronAPI.removeToggleRecordingListener(toggleHandler);
+    };
+  }, [state]);
+
   return (
     <div className="app-container">
       {state === 'menu' && (
@@ -45,6 +76,7 @@ function App() {
 
       {(state === 'recording' || state === 'transcribing') && (
         <RecordingPanel
+          ref={recordingPanelRef}
           state={state}
           onStop={handleStopRecording}
           onComplete={handleTranscribeComplete}

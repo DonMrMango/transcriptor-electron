@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, clipboard, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, clipboard, dialog, globalShortcut } from 'electron';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -91,6 +91,14 @@ function setupIPC() {
   ipcMain.on('window-minimize', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.minimize();
+    }
+  });
+
+  // Toggle recording (para atajo de teclado)
+  ipcMain.on('toggle-recording-shortcut', () => {
+    console.log('[SHORTCUT] Toggle recording triggered');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('toggle-recording');
     }
   });
 
@@ -220,6 +228,81 @@ function setupIPC() {
       });
     } catch (error: any) {
       console.error('[TRANSCRIBE_FILE] Caught exception:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Transcribir desde URL de YouTube
+  ipcMain.handle('transcribe-youtube', async (event, youtubeUrl: string, apiKey: string) => {
+    try {
+      console.log('[TRANSCRIBE_YOUTUBE] Starting transcription for YouTube URL:', youtubeUrl);
+      console.log('[TRANSCRIBE_YOUTUBE] API key:', apiKey.substring(0, 10) + '...');
+
+      // Ruta al CLI de Python
+      const pythonCli = path.join(__dirname, '../../python-engine/cli.py');
+      console.log('[TRANSCRIBE_YOUTUBE] Python CLI path:', pythonCli);
+
+      // Llamar al CLI de Python con el comando youtube
+      return new Promise((resolve) => {
+        const python = spawn('python3', [
+          pythonCli,
+          'youtube',
+          youtubeUrl,
+          apiKey,
+          'es',
+          'whisper-large-v3-turbo'
+        ], {
+          stdio: ['ignore', 'pipe', 'pipe']
+        });
+
+        let outputData = '';
+        let errorData = '';
+
+        python.stdout.on('data', (data) => {
+          const dataStr = data.toString();
+          console.log('[TRANSCRIBE_YOUTUBE] Python stdout:', dataStr);
+          outputData += dataStr;
+        });
+
+        python.stderr.on('data', (data) => {
+          const dataStr = data.toString();
+          console.log('[TRANSCRIBE_YOUTUBE] Python stderr:', dataStr);
+          errorData += dataStr;
+        });
+
+        python.on('close', (code) => {
+          console.log('[TRANSCRIBE_YOUTUBE] Python process closed with code:', code);
+
+          if (code !== 0) {
+            console.log('[TRANSCRIBE_YOUTUBE] Python failed with code:', code);
+            resolve({ success: false, error: errorData || 'Error descargando o transcribiendo YouTube' });
+            return;
+          }
+
+          try {
+            const result = JSON.parse(outputData);
+            console.log('[TRANSCRIBE_YOUTUBE] Parsed result:', result);
+
+            // Copiar al clipboard
+            if (result.success && result.text) {
+              clipboard.writeText(result.text);
+              console.log('[TRANSCRIBE_YOUTUBE] Text copied to clipboard');
+            }
+
+            resolve(result);
+          } catch (err) {
+            console.error('[TRANSCRIBE_YOUTUBE] Error parsing JSON:', err);
+            resolve({ success: false, error: 'Error parsing JSON: ' + err });
+          }
+        });
+
+        python.on('error', (err) => {
+          console.error('[TRANSCRIBE_YOUTUBE] Python process error:', err);
+          resolve({ success: false, error: 'Failed to start Python: ' + err.message });
+        });
+      });
+    } catch (error: any) {
+      console.error('[TRANSCRIBE_YOUTUBE] Caught exception:', error);
       return { success: false, error: error.message };
     }
   });
@@ -386,6 +469,23 @@ app.on('ready', () => {
   initDatabase();
   setupIPC();
   createWindow();
+
+  // Registrar atajo global Command+Shift+T
+  const ret = globalShortcut.register('CommandOrControl+Shift+T', () => {
+    console.log('[SHORTCUT] CommandOrControl+Shift+T pressed');
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('toggle-recording');
+    }
+  });
+
+  if (!ret) {
+    console.log('[SHORTCUT] Registration failed');
+  } else {
+    console.log('[SHORTCUT] CommandOrControl+Shift+T registered successfully');
+  }
+
+  // Verificar si el atajo está registrado
+  console.log('[SHORTCUT] Is registered?', globalShortcut.isRegistered('CommandOrControl+Shift+T'));
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -395,6 +495,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+app.on('will-quit', () => {
+  // Unregister all shortcuts
+  globalShortcut.unregisterAll();
 });
 
 app.on('activate', () => {

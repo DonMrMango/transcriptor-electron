@@ -21,7 +21,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
   transcribeFile: (filePath: string, apiKey: string) => ipcRenderer.invoke('transcribe-file', filePath, apiKey),
 
+  // Transcripción de YouTube
+  transcribeYoutube: (youtubeUrl: string, apiKey: string) => ipcRenderer.invoke('transcribe-youtube', youtubeUrl, apiKey),
+
   // Historial
   saveTranscription: (data: any) => ipcRenderer.invoke('save-transcription', data),
   getHistory: () => ipcRenderer.invoke('get-history'),
+
+  // Keyboard shortcut listener
+  onToggleRecording: (callback: () => void) => {
+    ipcRenderer.on('toggle-recording', callback);
+  },
+  removeToggleRecordingListener: (callback: () => void) => {
+    ipcRenderer.removeListener('toggle-recording', callback);
+  },
 });

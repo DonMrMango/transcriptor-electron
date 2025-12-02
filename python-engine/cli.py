@@ -7,6 +7,8 @@ Permite llamar desde Tauri/Node via subprocess
 import sys
 import json
 import os
+import subprocess
+import tempfile
 from pathlib import Path
 
 # Añadir transcriptor-lib al path
@@ -38,6 +40,8 @@ def main():
     try:
         if comando == 'transcribe':
             transcribe_command()
+        elif comando == 'youtube':
+            youtube_command()
         elif comando == 'test_api':
             test_api_command()
         else:
@@ -109,6 +113,82 @@ def transcribe_command():
 
     # Retornar JSON
     print(json.dumps(resultado, ensure_ascii=False, indent=2))
+
+
+def youtube_command():
+    """
+    Descarga audio de YouTube y transcribe
+
+    Args esperados:
+        - youtube_url: str (sys.argv[2])
+        - api_key: str (sys.argv[3])
+        - language: str (default: 'es') (sys.argv[4])
+        - model: str (default: 'whisper-large-v3-turbo') (sys.argv[5])
+    """
+    if len(sys.argv) < 4:
+        raise ValueError("Uso: cli.py youtube <url> <api_key> [language] [model]")
+
+    youtube_url = sys.argv[2]
+    api_key = sys.argv[3]
+    language = sys.argv[4] if len(sys.argv) > 4 else 'es'
+    model = sys.argv[5] if len(sys.argv) > 5 else 'whisper-large-v3-turbo'
+
+    # Crear directorio temporal
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        output_template = str(temp_path / '%(title)s.%(ext)s')
+
+        # Descargar audio con yt-dlp
+        try:
+            cmd = [
+                'yt-dlp',
+                '-x',  # Extraer solo audio
+                '--audio-format', 'mp3',  # Convertir a MP3
+                '--audio-quality', '0',  # Mejor calidad
+                '-o', output_template,
+                youtube_url
+            ]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"Error descargando YouTube: {e.stderr}")
+        except FileNotFoundError:
+            raise Exception("yt-dlp no está instalado. Instalar con: brew install yt-dlp")
+
+        # Buscar el archivo descargado
+        audio_files = list(temp_path.glob('*.mp3'))
+        if not audio_files:
+            raise Exception("No se pudo descargar el audio de YouTube")
+
+        audio_file = audio_files[0]
+
+        # Transcribir el audio
+        trans = Transcriptor(
+            api_key=api_key,
+            default_model=model
+        )
+
+        resultado = trans.transcribir(
+            str(audio_file),
+            language=language,
+            prompt='',
+            format='json'
+        )
+
+        # Añadir metadata adicional
+        resultado['file_name'] = audio_file.name
+        resultado['file_size_mb'] = audio_file.stat().st_size / (1024 * 1024)
+        resultado['source'] = 'youtube'
+        resultado['youtube_url'] = youtube_url
+
+        # Retornar JSON
+        print(json.dumps(resultado, ensure_ascii=False, indent=2))
 
 
 def test_api_command():
