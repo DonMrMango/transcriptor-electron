@@ -15,6 +15,7 @@ export default function RecordingPanel({ state, onStop, onComplete, onBack }: Re
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+  const isCancelledRef = useRef(false);
 
   useEffect(() => {
     if (state === 'recording' && !isPaused) {
@@ -41,8 +42,11 @@ export default function RecordingPanel({ state, onStop, onComplete, onBack }: Re
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        handleTranscribe(audioBlob);
+        // Solo transcribir si no fue cancelado
+        if (!isCancelledRef.current) {
+          const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          handleTranscribe(audioBlob);
+        }
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -57,6 +61,10 @@ export default function RecordingPanel({ state, onStop, onComplete, onBack }: Re
   };
 
   const startTimer = () => {
+    // Asegurarse de limpiar cualquier timer anterior
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
     timerRef.current = window.setInterval(() => {
       setRecordingTime((prev) => prev + 1);
     }, 1000);
@@ -88,6 +96,31 @@ export default function RecordingPanel({ state, onStop, onComplete, onBack }: Re
       stopTimer();
     }
     onStop();
+  };
+
+  const handleCancel = () => {
+    // Marcar como cancelado para evitar transcripción
+    isCancelledRef.current = true;
+
+    // Detener la grabación sin transcribir
+    stopTimer();
+
+    if (mediaRecorderRef.current) {
+      // Detener el MediaRecorder
+      if (mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+
+      // Detener todos los tracks del stream
+      const stream = mediaRecorderRef.current.stream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    // Limpiar los chunks
+    chunksRef.current = [];
+
+    // Volver al menú sin transcribir
+    onBack();
   };
 
   const handleTranscribe = async (audioBlob: Blob) => {
@@ -167,6 +200,10 @@ export default function RecordingPanel({ state, onStop, onComplete, onBack }: Re
             onClick={handlePause}
           >
             {isPaused ? '▶️' : '⏸️'}
+          </button>
+
+          <button className="control-btn cancel-btn" onClick={handleCancel}>
+            ❌
           </button>
 
           <button className="control-btn stop-btn" onClick={handleStop}>

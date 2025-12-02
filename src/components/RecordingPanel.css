@@ -128,6 +128,16 @@
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
 }
 
+.cancel-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.cancel-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
 .stop-btn {
   background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
   color: white;
