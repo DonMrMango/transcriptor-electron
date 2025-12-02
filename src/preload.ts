@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('transcribe-audio', buffer, apiKey);
   },
 
+  // File dialog y transcripción de archivos
+  openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
+  transcribeFile: (filePath: string, apiKey: string) => ipcRenderer.invoke('transcribe-file', filePath, apiKey),
+
   // Historial
   saveTranscription: (data: any) => ipcRenderer.invoke('save-transcription', data),
   getHistory: () => ipcRenderer.invoke('get-history'),

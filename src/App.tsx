@@ -39,6 +39,7 @@ function App() {
           onStartRecording={handleStartRecording}
           onViewHistory={handleViewHistory}
           onClose={() => {}}
+          onFileTranscribe={handleTranscribeComplete}
         />
       )}
 

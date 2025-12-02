@@ -50,6 +50,7 @@ export default function RecordingPanel({ state, onStop, onComplete, onBack }: Re
         stream.getTracks().forEach(track => track.stop());
       };
 
+      // Iniciar grabación
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
       startTimer();

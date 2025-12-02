@@ -4,12 +4,48 @@ interface MenuPanelProps {
   onStartRecording: () => void;
   onViewHistory: () => void;
   onClose: () => void;
+  onFileTranscribe: (text: string) => void;
 }
 
-export default function MenuPanel({ onStartRecording, onViewHistory, onClose }: MenuPanelProps) {
+export default function MenuPanel({ onStartRecording, onViewHistory, onClose, onFileTranscribe }: MenuPanelProps) {
   const handleTranscribeFile = async () => {
-    // TODO: Abrir file picker y transcribir archivo
-    console.log('Transcribir archivo');
+    try {
+      // Abrir file dialog
+      const fileResult = await window.electronAPI.openFileDialog();
+
+      if (fileResult.canceled || !fileResult.success) {
+        return;
+      }
+
+      // Obtener API key
+      const apiKey = await window.electronAPI.getApiKey();
+      if (!apiKey) {
+        alert('No se encontró la API key');
+        return;
+      }
+
+      // Transcribir archivo
+      const result = await window.electronAPI.transcribeFile(fileResult.filePath, apiKey);
+
+      if (result.success) {
+        // Guardar en historial
+        await window.electronAPI.saveTranscription({
+          text: result.text,
+          timestamp: Date.now(),
+          duration: result.duration || null,
+          language: result.language || 'es',
+          model: result.model || 'whisper-large-v3-turbo'
+        });
+
+        // Mostrar resultado
+        onFileTranscribe(result.text);
+      } else {
+        alert('Error en transcripción: ' + (result.error || 'Error desconocido'));
+      }
+    } catch (error: any) {
+      console.error('Error transcribing file:', error);
+      alert('Error: ' + error.message);
+    }
   };
 
   const handleMinimize = () => {

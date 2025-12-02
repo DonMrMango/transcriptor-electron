@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, clipboard } from 'electron';
+import { app, BrowserWindow, ipcMain, clipboard, dialog } from 'electron';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -123,6 +123,107 @@ function setupIPC() {
     }
   });
 
+  // File dialog para seleccionar archivo
+  ipcMain.handle('open-file-dialog', async () => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openFile'],
+        filters: [
+          { name: 'Audio/Video', extensions: ['mp3', 'wav', 'webm', 'mp4', 'm4a', 'ogg', 'flac', 'aac', 'wma', 'avi', 'mov', 'mkv'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      });
+
+      if (result.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      return { success: true, filePath: result.filePaths[0] };
+    } catch (error: any) {
+      console.error('[FILE_DIALOG] Error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Transcribir archivo desde path
+  ipcMain.handle('transcribe-file', async (event, filePath: string, apiKey: string) => {
+    try {
+      console.log('[TRANSCRIBE_FILE] Starting transcription for file:', filePath);
+      console.log('[TRANSCRIBE_FILE] API key:', apiKey.substring(0, 10) + '...');
+
+      if (!fs.existsSync(filePath)) {
+        return { success: false, error: 'File not found' };
+      }
+
+      // Ruta al CLI de Python
+      const pythonCli = path.join(__dirname, '../../python-engine/cli.py');
+      console.log('[TRANSCRIBE_FILE] Python CLI path:', pythonCli);
+
+      // Llamar al CLI de Python directamente con el archivo
+      return new Promise((resolve) => {
+        const python = spawn('python3', [
+          pythonCli,
+          'transcribe',
+          filePath,
+          apiKey,
+          'es',
+          'whisper-large-v3-turbo'
+        ], {
+          stdio: ['ignore', 'pipe', 'pipe']
+        });
+
+        let outputData = '';
+        let errorData = '';
+
+        python.stdout.on('data', (data) => {
+          const dataStr = data.toString();
+          console.log('[TRANSCRIBE_FILE] Python stdout:', dataStr);
+          outputData += dataStr;
+        });
+
+        python.stderr.on('data', (data) => {
+          const dataStr = data.toString();
+          console.log('[TRANSCRIBE_FILE] Python stderr:', dataStr);
+          errorData += dataStr;
+        });
+
+        python.on('close', (code) => {
+          console.log('[TRANSCRIBE_FILE] Python process closed with code:', code);
+
+          if (code !== 0) {
+            console.log('[TRANSCRIBE_FILE] Python failed with code:', code);
+            resolve({ success: false, error: errorData || 'Error en transcripción' });
+            return;
+          }
+
+          try {
+            const result = JSON.parse(outputData);
+            console.log('[TRANSCRIBE_FILE] Parsed result:', result);
+
+            // Copiar al clipboard
+            if (result.success && result.text) {
+              clipboard.writeText(result.text);
+              console.log('[TRANSCRIBE_FILE] Text copied to clipboard');
+            }
+
+            resolve(result);
+          } catch (err) {
+            console.error('[TRANSCRIBE_FILE] Error parsing JSON:', err);
+            resolve({ success: false, error: 'Error parsing JSON: ' + err });
+          }
+        });
+
+        python.on('error', (err) => {
+          console.error('[TRANSCRIBE_FILE] Python process error:', err);
+          resolve({ success: false, error: 'Failed to start Python: ' + err.message });
+        });
+      });
+    } catch (error: any) {
+      console.error('[TRANSCRIBE_FILE] Caught exception:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Transcripción
   ipcMain.handle('transcribe-audio', async (event, audioBlob: Buffer, apiKey: string) => {
     try {
@@ -186,7 +287,7 @@ function setupIPC() {
           if (code !== 0) {
             console.log('[TRANSCRIBE] Python failed with code:', code);
             console.log('[TRANSCRIBE] Error output:', errorData);
-            reject({ success: false, error: errorData || 'Error en transcripción' });
+            resolve({ success: false, error: errorData || 'Error en transcripción' });
             return;
           }
 
@@ -206,13 +307,13 @@ function setupIPC() {
           } catch (err) {
             console.error('[TRANSCRIBE] Error parsing JSON:', err);
             console.log('[TRANSCRIBE] Raw output was:', outputData);
-            reject({ success: false, error: 'Error parsing JSON: ' + err });
+            resolve({ success: false, error: 'Error parsing JSON: ' + err });
           }
         });
 
         python.on('error', (err) => {
           console.error('[TRANSCRIBE] Python process error:', err);
-          reject({ success: false, error: 'Failed to start Python: ' + err.message });
+          resolve({ success: false, error: 'Failed to start Python: ' + err.message });
         });
       });
     } catch (error: any) {
