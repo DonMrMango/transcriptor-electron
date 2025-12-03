@@ -94,6 +94,38 @@ function setupIPC() {
     }
   });
 
+  ipcMain.on('window-maximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+
+  ipcMain.on('window-resize', (event, { width, height }) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      console.log('[WINDOW] Resizing to:', width, 'x', height);
+      mainWindow.setSize(width, height, true);
+      mainWindow.center();
+    }
+  });
+
+  ipcMain.on('window-set-resizable', (event, resizable: boolean) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      console.log('[WINDOW] Set resizable:', resizable);
+      mainWindow.setResizable(resizable);
+    }
+  });
+
+  ipcMain.handle('window-is-maximized', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      return mainWindow.isMaximized();
+    }
+    return false;
+  });
+
   // Toggle recording (para atajo de teclado)
   ipcMain.on('toggle-recording-shortcut', () => {
     console.log('[SHORTCUT] Toggle recording triggered');
@@ -458,6 +490,315 @@ function setupIPC() {
     } catch (error: any) {
       console.error('[DB] Error retrieving history:', error);
       return [];
+    }
+  });
+
+  // PDF Tools - Select multiple PDF files
+  ipcMain.handle('select-pdf-files', async () => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openFile', 'multiSelections'],
+        filters: [
+          { name: 'PDF Files', extensions: ['pdf'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      });
+
+      if (result.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      return { success: true, filePaths: result.filePaths };
+    } catch (error: any) {
+      console.error('[PDF] Error selecting files:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Tools - Combine PDFs
+  ipcMain.handle('combine-pdfs', async (event, filePaths: string[]) => {
+    try {
+      console.log('[PDF] Combining PDFs:', filePaths);
+
+      const { PDFDocument } = await import('pdf-lib');
+      const mergedPdf = await PDFDocument.create();
+
+      // Read and merge all PDFs
+      for (const filePath of filePaths) {
+        const pdfBytes = fs.readFileSync(filePath);
+        const pdf = await PDFDocument.load(pdfBytes);
+        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      }
+
+      // Save merged PDF
+      const mergedPdfBytes = await mergedPdf.save();
+
+      // Ask user where to save
+      const saveResult = await dialog.showSaveDialog(mainWindow!, {
+        defaultPath: 'combined.pdf',
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      // Write to file
+      fs.writeFileSync(saveResult.filePath!, Buffer.from(mergedPdfBytes));
+
+      console.log('[PDF] Combined PDF saved to:', saveResult.filePath);
+      return { success: true, filePath: saveResult.filePath };
+    } catch (error: any) {
+      console.error('[PDF] Error combining PDFs:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Tools - Select single PDF file
+  ipcMain.handle('select-single-pdf', async () => {
+    try {
+      const result = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openFile'],
+        filters: [
+          { name: 'PDF Files', extensions: ['pdf'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      });
+
+      if (result.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      return { success: true, filePath: result.filePaths[0] };
+    } catch (error: any) {
+      console.error('[PDF] Error selecting file:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Tools - Get PDF page count
+  ipcMain.handle('get-pdf-page-count', async (event, filePath: string) => {
+    try {
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfBytes = fs.readFileSync(filePath);
+      const pdf = await PDFDocument.load(pdfBytes);
+      const pageCount = pdf.getPageCount();
+
+      return { success: true, pageCount };
+    } catch (error: any) {
+      console.error('[PDF] Error getting page count:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Tools - Split PDF (single file with selected pages)
+  ipcMain.handle('split-pdf', async (event, filePath: string, pages: number[]) => {
+    try {
+      console.log('[PDF] Splitting PDF:', filePath, 'Pages:', pages);
+
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfBytes = fs.readFileSync(filePath);
+      const sourcePdf = await PDFDocument.load(pdfBytes);
+
+      // Create new PDF with selected pages
+      const newPdf = await PDFDocument.create();
+      const copiedPages = await newPdf.copyPages(sourcePdf, pages);
+      copiedPages.forEach((page) => newPdf.addPage(page));
+
+      // Save split PDF
+      const splitPdfBytes = await newPdf.save();
+
+      // Ask user where to save
+      const saveResult = await dialog.showSaveDialog(mainWindow!, {
+        defaultPath: 'split.pdf',
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      // Write to file
+      fs.writeFileSync(saveResult.filePath!, Buffer.from(splitPdfBytes));
+
+      console.log('[PDF] Split PDF saved to:', saveResult.filePath);
+      return { success: true, filePath: saveResult.filePath };
+    } catch (error: any) {
+      console.error('[PDF] Error splitting PDF:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Tools - Split PDF into individual pages
+  ipcMain.handle('split-pdf-individual', async (event, filePath: string, pages: number[]) => {
+    try {
+      console.log('[PDF] Splitting PDF into individual files:', filePath, 'Pages:', pages);
+
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfBytes = fs.readFileSync(filePath);
+      const sourcePdf = await PDFDocument.load(pdfBytes);
+
+      // Ask user where to save
+      const saveResult = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Selecciona carpeta para guardar las páginas'
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      const outputDir = saveResult.filePaths[0];
+      const savedFiles: string[] = [];
+
+      // Create individual PDF for each page
+      for (const pageIndex of pages) {
+        const newPdf = await PDFDocument.create();
+        const [copiedPage] = await newPdf.copyPages(sourcePdf, [pageIndex]);
+        newPdf.addPage(copiedPage);
+
+        const pdfBytes = await newPdf.save();
+        const fileName = `pagina_${pageIndex + 1}.pdf`;
+        const filePath = path.join(outputDir, fileName);
+
+        fs.writeFileSync(filePath, Buffer.from(pdfBytes));
+        savedFiles.push(filePath);
+      }
+
+      console.log('[PDF] Individual PDFs saved:', savedFiles.length);
+      return { success: true, count: savedFiles.length, directory: outputDir };
+    } catch (error: any) {
+      console.error('[PDF] Error splitting PDF individually:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Conversion - Images to PDF
+  ipcMain.handle('images-to-pdf', async (event) => {
+    try {
+      console.log('[PDF] Converting images to PDF');
+
+      // Select image files
+      const selectResult = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openFile', 'multiSelections'],
+        filters: [
+          { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'webp'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        title: 'Selecciona imágenes para convertir a PDF'
+      });
+
+      if (selectResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      const { PDFDocument } = await import('pdf-lib');
+      const sharp = (await import('sharp')).default;
+
+      const pdfDoc = await PDFDocument.create();
+
+      // Process each image
+      for (const imagePath of selectResult.filePaths) {
+        console.log('[PDF] Processing image:', imagePath);
+
+        // Convert image to JPEG buffer using sharp
+        const imageBuffer = await sharp(imagePath)
+          .jpeg({ quality: 90 })
+          .toBuffer();
+
+        // Embed image in PDF
+        const image = await pdfDoc.embedJpg(imageBuffer);
+        const page = pdfDoc.addPage([image.width, image.height]);
+        page.drawImage(image, {
+          x: 0,
+          y: 0,
+          width: image.width,
+          height: image.height,
+        });
+      }
+
+      // Ask where to save
+      const saveResult = await dialog.showSaveDialog(mainWindow!, {
+        defaultPath: 'converted.pdf',
+        filters: [
+          { name: 'PDF Files', extensions: ['pdf'] }
+        ],
+        title: 'Guardar PDF'
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      fs.writeFileSync(saveResult.filePath!, Buffer.from(pdfBytes));
+
+      console.log('[PDF] Images converted to PDF:', saveResult.filePath);
+      return { success: true, filePath: saveResult.filePath };
+    } catch (error: any) {
+      console.error('[PDF] Error converting images to PDF:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Conversion - PDF to Images
+  ipcMain.handle('pdf-to-images', async (event, filePath: string) => {
+    try {
+      console.log('[PDF] Converting PDF to images:', filePath);
+
+      const { fromPath } = await import('pdf2pic');
+      const { PDFDocument } = await import('pdf-lib');
+
+      // Get page count first
+      const pdfBytes = fs.readFileSync(filePath);
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const pageCount = pdfDoc.getPageCount();
+
+      console.log('[PDF] PDF has', pageCount, 'pages');
+
+      // Ask where to save
+      const saveResult = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Selecciona carpeta para guardar las imágenes'
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      const outputDir = saveResult.filePaths[0];
+      const baseName = path.basename(filePath, '.pdf');
+
+      // Configure pdf2pic
+      const options = {
+        density: 150,           // DPI (higher = better quality, larger file)
+        saveFilename: baseName,
+        savePath: outputDir,
+        format: 'png',
+        width: 2480,           // A4 width at 150 DPI
+        height: 3508           // A4 height at 150 DPI
+      };
+
+      const converter = fromPath(filePath, options);
+      const savedFiles: string[] = [];
+
+      // Convert each page
+      for (let i = 1; i <= pageCount; i++) {
+        console.log(`[PDF] Converting page ${i}/${pageCount}`);
+        const pageResult = await converter(i, { responseType: 'image' });
+
+        if (pageResult && pageResult.path) {
+          savedFiles.push(pageResult.path);
+          console.log('[PDF] Saved:', pageResult.path);
+        }
+      }
+
+      console.log('[PDF] Conversion complete:', savedFiles.length, 'images saved');
+      return { success: true, count: savedFiles.length, directory: outputDir };
+    } catch (error: any) {
+      console.error('[PDF] Error converting PDF to images:', error);
+      return { success: false, error: error.message };
     }
   });
 }

@@ -5,6 +5,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Control de ventana
   closeWindow: () => ipcRenderer.send('window-close'),
   minimizeWindow: () => ipcRenderer.send('window-minimize'),
+  maximizeWindow: () => ipcRenderer.send('window-maximize'),
+  resizeWindow: (width: number, height: number) => ipcRenderer.send('window-resize', { width, height }),
+  setResizable: (resizable: boolean) => ipcRenderer.send('window-set-resizable', resizable),
+  isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
 
   // API Key
   getApiKey: () => ipcRenderer.invoke('get-api-key'),
@@ -35,4 +39,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeToggleRecordingListener: (callback: () => void) => {
     ipcRenderer.removeListener('toggle-recording', callback);
   },
+
+  // PDF Tools
+  selectPdfFiles: () => ipcRenderer.invoke('select-pdf-files'),
+  combinePdfs: (filePaths: string[]) => ipcRenderer.invoke('combine-pdfs', filePaths),
+  selectSinglePdf: () => ipcRenderer.invoke('select-single-pdf'),
+  getPdfPageCount: (filePath: string) => ipcRenderer.invoke('get-pdf-page-count', filePath),
+  splitPdf: (filePath: string, pages: number[]) => ipcRenderer.invoke('split-pdf', filePath, pages),
+  splitPdfIndividual: (filePath: string, pages: number[]) => ipcRenderer.invoke('split-pdf-individual', filePath, pages),
+
+  // PDF Conversions
+  imagesToPdf: () => ipcRenderer.invoke('images-to-pdf'),
+  pdfToImages: (filePath: string) => ipcRenderer.invoke('pdf-to-images', filePath),
 });

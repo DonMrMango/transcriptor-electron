@@ -6,9 +6,11 @@ interface MenuPanelProps {
   onViewHistory: () => void;
   onClose: () => void;
   onFileTranscribe: (text: string) => void;
+  currentSection?: string;
+  onSectionChange?: (section: string) => void;
 }
 
-export default function MenuPanel({ onStartRecording, onViewHistory, onClose, onFileTranscribe }: MenuPanelProps) {
+export default function MenuPanel({ onStartRecording, onViewHistory, onClose, onFileTranscribe, currentSection = 'transcription', onSectionChange }: MenuPanelProps) {
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -175,6 +177,22 @@ export default function MenuPanel({ onStartRecording, onViewHistory, onClose, on
       )}
 
       <div className="menu-footer">
+        <div className="section-nav">
+          <button
+            className={`section-dot ${currentSection === 'transcription' ? 'active' : ''}`}
+            onClick={() => onSectionChange?.('transcription')}
+            title="Transcripción"
+          >
+            🎤
+          </button>
+          <button
+            className={`section-dot ${currentSection === 'pdf' ? 'active' : ''}`}
+            onClick={() => onSectionChange?.('pdf')}
+            title="PDF"
+          >
+            📄
+          </button>
+        </div>
         <span className="version">v0.1.0</span>
       </div>
     </div>

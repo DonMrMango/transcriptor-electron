@@ -1,6 +1,10 @@
 export interface ElectronAPI {
   closeWindow: () => void;
   minimizeWindow: () => void;
+  maximizeWindow: () => void;
+  resizeWindow: (width: number, height: number) => void;
+  setResizable: (resizable: boolean) => void;
+  isMaximized: () => Promise<boolean>;
   getApiKey: () => Promise<string | null>;
   saveApiKey: (apiKey: string) => Promise<any>;
   transcribeAudio: (audioBlob: Blob, apiKey: string) => Promise<any>;
@@ -11,6 +15,14 @@ export interface ElectronAPI {
   getHistory: () => Promise<any[]>;
   onToggleRecording: (callback: () => void) => void;
   removeToggleRecordingListener: (callback: () => void) => void;
+  selectPdfFiles: () => Promise<any>;
+  combinePdfs: (filePaths: string[]) => Promise<any>;
+  selectSinglePdf: () => Promise<any>;
+  getPdfPageCount: (filePath: string) => Promise<any>;
+  splitPdf: (filePath: string, pages: number[]) => Promise<any>;
+  splitPdfIndividual: (filePath: string, pages: number[]) => Promise<any>;
+  imagesToPdf: () => Promise<any>;
+  pdfToImages: (filePath: string) => Promise<any>;
 }
 
 declare global {
