@@ -10,11 +10,12 @@ interface ResultPanelProps {
 export default function ResultPanel({ text, transcriptionId, onBack }: ResultPanelProps) {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [currentText, setCurrentText] = useState(text);
   const [editedText, setEditedText] = useState(text);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleCopy = () => {
-    const textToCopy = isEditing ? editedText : text;
+    const textToCopy = isEditing ? editedText : currentText;
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -25,7 +26,7 @@ export default function ResultPanel({ text, transcriptionId, onBack }: ResultPan
   };
 
   const handleCancelEdit = () => {
-    setEditedText(text);
+    setEditedText(currentText);
     setIsEditing(false);
   };
 
@@ -39,6 +40,8 @@ export default function ResultPanel({ text, transcriptionId, onBack }: ResultPan
     try {
       const result = await window.electronAPI.updateTranscription(transcriptionId, editedText);
       if (result.success) {
+        // Actualizar el texto actual con el texto editado
+        setCurrentText(editedText);
         setIsEditing(false);
       } else {
         console.error('Error updating transcription:', result.error);
@@ -69,7 +72,7 @@ export default function ResultPanel({ text, transcriptionId, onBack }: ResultPan
               autoFocus
             />
           ) : (
-            <p className="transcription-text">{text}</p>
+            <p className="transcription-text">{currentText}</p>
           )}
         </div>
 
