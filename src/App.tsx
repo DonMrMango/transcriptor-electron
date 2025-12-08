@@ -16,6 +16,28 @@ function App() {
   const [currentSection, setCurrentSection] = useState<Section>('transcription');
   const recordingPanelRef = useRef<RecordingPanelRef>(null);
 
+  // API Key management
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [apiKeyError, setApiKeyError] = useState('');
+
+  // Check for API key on mount
+  useEffect(() => {
+    const checkApiKey = async () => {
+      try {
+        const apiKey = await window.electronAPI.getApiKey();
+        if (!apiKey) {
+          setShowApiKeyModal(true);
+        }
+      } catch (error) {
+        console.error('Error checking API key:', error);
+        setShowApiKeyModal(true);
+      }
+    };
+
+    checkApiKey();
+  }, []);
+
   const handleStartRecording = () => {
     setState('recording');
   };
@@ -35,6 +57,23 @@ function App() {
 
   const handleViewHistory = () => {
     setState('history');
+  };
+
+  const handleSaveApiKey = async () => {
+    try {
+      if (!apiKeyInput.trim()) {
+        setApiKeyError('Por favor ingresa una API key');
+        return;
+      }
+
+      await window.electronAPI.saveApiKey(apiKeyInput.trim());
+      setShowApiKeyModal(false);
+      setApiKeyInput('');
+      setApiKeyError('');
+    } catch (error: any) {
+      console.error('Error saving API key:', error);
+      setApiKeyError('Error al guardar la API key: ' + error.message);
+    }
   };
 
   const handleSectionChange = (section: Section) => {
@@ -724,6 +763,57 @@ function App() {
                   <span className="conversion-desc">Próximamente</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* API Key Configuration Modal */}
+      {showApiKeyModal && (
+        <div className="modal-overlay">
+          <div className="split-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🔑 Configurar API Key de Groq</h3>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '16px', color: '#666', fontSize: '14px' }}>
+                Para usar Transcriptor necesitas una API key de Groq.<br />
+                Obtén una gratis en: <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" style={{ color: '#667eea' }}>console.groq.com</a>
+              </p>
+
+              <div className="form-group">
+                <label htmlFor="apiKeyInput" style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                  API Key:
+                </label>
+                <input
+                  id="apiKeyInput"
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSaveApiKey()}
+                  placeholder="gsk_..."
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontFamily: 'monospace'
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              {apiKeyError && (
+                <div style={{ color: '#e74c3c', fontSize: '14px', marginTop: '8px' }}>
+                  {apiKeyError}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button className="action-btn save-btn" onClick={handleSaveApiKey}>
+                Guardar
+              </button>
             </div>
           </div>
         </div>
