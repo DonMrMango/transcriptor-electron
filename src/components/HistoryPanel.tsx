@@ -18,6 +18,8 @@ export default function HistoryPanel({ onBack }: HistoryPanelProps) {
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
   const [selectedItem, setSelectedItem] = useState<Transcription | null>(null);
   const [copied, setCopied] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -26,6 +28,25 @@ export default function HistoryPanel({ onBack }: HistoryPanelProps) {
   const loadHistory = async () => {
     const history = await window.electronAPI.getHistory();
     setTranscriptions(history);
+  };
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    setIsSearching(true);
+
+    try {
+      const results = await window.electronAPI.searchTranscriptions(query);
+      setTranscriptions(results);
+    } catch (error) {
+      console.error('Error searching transcriptions:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    loadHistory();
   };
 
   const handleItemClick = (item: Transcription) => {
@@ -68,10 +89,46 @@ export default function HistoryPanel({ onBack }: HistoryPanelProps) {
         <button className="back-btn" onClick={onBack}>←</button>
       </div>
 
+      <div className="search-container">
+        <div className="search-input-wrapper">
+          <span className="search-icon">🔍</span>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Buscar en transcripciones..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+          {searchQuery && (
+            <button className="clear-search-btn" onClick={handleClearSearch}>
+              ×
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <div className="search-results-info">
+            {isSearching ? (
+              <span>Buscando...</span>
+            ) : (
+              <span>{transcriptions.length} resultado{transcriptions.length !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+        )}
+      </div>
+
       {transcriptions.length === 0 ? (
         <div className="empty-state">
-          <p>No hay transcripciones guardadas</p>
-          <p className="hint">Las transcripciones se guardan automáticamente</p>
+          {searchQuery ? (
+            <>
+              <p>No se encontraron resultados para "{searchQuery}"</p>
+              <p className="hint">Intenta con otros términos de búsqueda</p>
+            </>
+          ) : (
+            <>
+              <p>No hay transcripciones guardadas</p>
+              <p className="hint">Las transcripciones se guardan automáticamente</p>
+            </>
+          )}
         </div>
       ) : (
         <div className="history-content">

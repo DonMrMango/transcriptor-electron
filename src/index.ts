@@ -487,6 +487,44 @@ function setupIPC() {
     }
   });
 
+  ipcMain.handle('search-transcriptions', async (event, query: string) => {
+    try {
+      if (!db) {
+        console.error('[DB] Database not initialized');
+        return [];
+      }
+
+      if (!query || query.trim() === '') {
+        // Si no hay query, retornar todo el historial
+        const stmt = db.prepare(`
+          SELECT * FROM transcriptions
+          ORDER BY timestamp DESC
+          LIMIT 100
+        `);
+        return stmt.all();
+      }
+
+      console.log('[DB] Searching transcriptions for:', query);
+
+      // Búsqueda case-insensitive usando LIKE
+      const stmt = db.prepare(`
+        SELECT * FROM transcriptions
+        WHERE text LIKE ?
+        ORDER BY timestamp DESC
+        LIMIT 100
+      `);
+
+      const searchPattern = `%${query}%`;
+      const rows = stmt.all(searchPattern);
+      console.log('[DB] Found', rows.length, 'matching transcriptions');
+
+      return rows;
+    } catch (error: any) {
+      console.error('[DB] Error searching transcriptions:', error);
+      return [];
+    }
+  });
+
   // PDF Tools - Select multiple PDF files
   ipcMain.handle('select-pdf-files', async () => {
     try {

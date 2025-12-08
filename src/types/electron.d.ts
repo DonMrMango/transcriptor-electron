@@ -13,6 +13,7 @@ export interface ElectronAPI {
   transcribeYoutube: (youtubeUrl: string, apiKey: string) => Promise<any>;
   saveTranscription: (data: any) => Promise<any>;
   getHistory: () => Promise<any[]>;
+  searchTranscriptions: (query: string) => Promise<any[]>;
   onToggleRecording: (callback: () => void) => void;
   removeToggleRecordingListener: (callback: () => void) => void;
   selectPdfFiles: () => Promise<any>;
