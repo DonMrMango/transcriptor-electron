@@ -5,9 +5,12 @@ cd "$(dirname "$0")"
 
 echo "🚀 Iniciando Transcriptor Electron..."
 
-# Verificar si node_modules existe
+# Verificar/actualizar dependencias de Node.js
 if [ ! -d "node_modules" ]; then
     echo "📦 Instalando dependencias de Node.js..."
+    npm install
+else
+    echo "🔄 Verificando dependencias de Node.js..."
     npm install
 fi
 
