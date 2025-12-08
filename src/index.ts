@@ -217,13 +217,11 @@ function setupIPC() {
 
         python.stdout.on('data', (data) => {
           const dataStr = data.toString();
-          console.log('[TRANSCRIBE_FILE] Python stdout:', dataStr);
           outputData += dataStr;
         });
 
         python.stderr.on('data', (data) => {
           const dataStr = data.toString();
-          console.log('[TRANSCRIBE_FILE] Python stderr:', dataStr);
           errorData += dataStr;
         });
 
@@ -292,13 +290,11 @@ function setupIPC() {
 
         python.stdout.on('data', (data) => {
           const dataStr = data.toString();
-          console.log('[TRANSCRIBE_YOUTUBE] Python stdout:', dataStr);
           outputData += dataStr;
         });
 
         python.stderr.on('data', (data) => {
           const dataStr = data.toString();
-          console.log('[TRANSCRIBE_YOUTUBE] Python stderr:', dataStr);
           errorData += dataStr;
         });
 
@@ -380,13 +376,11 @@ function setupIPC() {
 
         python.stdout.on('data', (data) => {
           const dataStr = data.toString();
-          console.log('[TRANSCRIBE] Python stdout:', dataStr);
           outputData += dataStr;
         });
 
         python.stderr.on('data', (data) => {
           const dataStr = data.toString();
-          console.log('[TRANSCRIBE] Python stderr:', dataStr);
           errorData += dataStr;
         });
 
