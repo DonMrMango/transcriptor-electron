@@ -809,6 +809,16 @@ app.on('ready', () => {
   const ret = globalShortcut.register('CommandOrControl+Shift+T', () => {
     console.log('[SHORTCUT] CommandOrControl+Shift+T pressed');
     if (mainWindow && !mainWindow.isDestroyed()) {
+      // Mostrar y enfocar la ventana si está minimizada u oculta
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      if (!mainWindow.isVisible()) {
+        mainWindow.show();
+      }
+      mainWindow.focus();
+
+      // Enviar evento para toggle recording
       mainWindow.webContents.send('toggle-recording');
     }
   });
