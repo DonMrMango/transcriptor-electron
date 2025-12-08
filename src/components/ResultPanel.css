@@ -79,9 +79,48 @@
   word-break: break-word;
 }
 
+.transcription-textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(180, 190, 254, 0.3);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding: 12px;
+  resize: none;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.transcription-textarea:focus {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(180, 190, 254, 0.5);
+  box-shadow: 0 0 0 3px rgba(180, 190, 254, 0.1);
+}
+
 .result-actions {
   display: flex;
   gap: 8px;
+}
+
+.copy-btn,
+.done-btn,
+.edit-btn,
+.save-btn,
+.cancel-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .copy-btn,
@@ -123,6 +162,58 @@
 
 .done-btn:active {
   transform: translateY(0);
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.edit-btn:hover {
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  transform: translateY(-2px);
+}
+
+.edit-btn:active {
+  transform: translateY(0);
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.save-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+.save-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+  transform: translateY(-2px);
+}
+
+.cancel-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .hint {

@@ -5,7 +5,7 @@ import './RecordingPanel.css';
 interface RecordingPanelProps {
   state: AppState;
   onStop: () => void;
-  onComplete: (text: string) => void;
+  onComplete: (text: string, transcriptionId?: number) => void;
   onBack: () => void;
 }
 
@@ -152,7 +152,7 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
         console.log('Transcripción completada:', result.text);
 
         // Guardar en base de datos
-        await window.electronAPI.saveTranscription({
+        const saveResult = await window.electronAPI.saveTranscription({
           text: result.text,
           timestamp: Date.now(),
           duration: recordingTime,
@@ -160,7 +160,8 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
           model: 'whisper-large-v3-turbo'
         });
 
-        onComplete(result.text);
+        const transcriptionId = saveResult?.id;
+        onComplete(result.text, transcriptionId);
       } else {
         console.error('Error en transcripción:', result.error);
         onBack();

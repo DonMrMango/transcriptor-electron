@@ -13,6 +13,7 @@ export type Section = 'transcription' | 'pdf';
 function App() {
   const [state, setState] = useState<AppState>('menu');
   const [transcriptionResult, setTranscriptionResult] = useState<string>('');
+  const [transcriptionId, setTranscriptionId] = useState<number | undefined>(undefined);
   const [currentSection, setCurrentSection] = useState<Section>('transcription');
   const recordingPanelRef = useRef<RecordingPanelRef>(null);
 
@@ -46,13 +47,15 @@ function App() {
     setState('transcribing');
   };
 
-  const handleTranscribeComplete = (text: string) => {
+  const handleTranscribeComplete = (text: string, id?: number) => {
     setTranscriptionResult(text);
+    setTranscriptionId(id);
     setState('result');
   };
 
   const handleBack = () => {
     setState('menu');
+    setTranscriptionId(undefined);
   };
 
   const handleViewHistory = () => {
@@ -464,6 +467,7 @@ function App() {
       {state === 'result' && (
         <ResultPanel
           text={transcriptionResult}
+          transcriptionId={transcriptionId}
           onBack={handleBack}
         />
       )}

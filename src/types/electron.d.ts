@@ -14,6 +14,7 @@ export interface ElectronAPI {
   saveTranscription: (data: any) => Promise<any>;
   getHistory: () => Promise<any[]>;
   searchTranscriptions: (query: string) => Promise<any[]>;
+  updateTranscription: (id: number, text: string) => Promise<{ success: boolean; error?: string }>;
   onToggleRecording: (callback: () => void) => void;
   removeToggleRecordingListener: (callback: () => void) => void;
   selectPdfFiles: () => Promise<any>;

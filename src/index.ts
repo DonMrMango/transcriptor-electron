@@ -525,6 +525,32 @@ function setupIPC() {
     }
   });
 
+  // Update transcription
+  ipcMain.handle('update-transcription', async (event, id: number, text: string) => {
+    try {
+      if (!db) {
+        console.error('[DB] Database not initialized');
+        return { success: false, error: 'Database not initialized' };
+      }
+
+      console.log('[DB] Updating transcription:', id);
+
+      const stmt = db.prepare(`
+        UPDATE transcriptions
+        SET text = ?
+        WHERE id = ?
+      `);
+
+      const result = stmt.run(text, id);
+      console.log('[DB] Transcription updated, changes:', result.changes);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('[DB] Error updating transcription:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // PDF Tools - Select multiple PDF files
   ipcMain.handle('select-pdf-files', async () => {
     try {

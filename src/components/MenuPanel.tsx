@@ -5,7 +5,7 @@ interface MenuPanelProps {
   onStartRecording: () => void;
   onViewHistory: () => void;
   onClose: () => void;
-  onFileTranscribe: (text: string) => void;
+  onFileTranscribe: (text: string, transcriptionId?: number) => void;
   currentSection?: string;
   onSectionChange?: (section: string) => void;
 }
@@ -35,7 +35,7 @@ export default function MenuPanel({ onStartRecording, onViewHistory, onClose, on
 
       if (result.success) {
         // Guardar en historial
-        await window.electronAPI.saveTranscription({
+        const saveResult = await window.electronAPI.saveTranscription({
           text: result.text,
           timestamp: Date.now(),
           duration: result.duration || null,
@@ -43,8 +43,9 @@ export default function MenuPanel({ onStartRecording, onViewHistory, onClose, on
           model: result.model || 'whisper-large-v3-turbo'
         });
 
+        const transcriptionId = saveResult?.id;
         // Mostrar resultado
-        onFileTranscribe(result.text);
+        onFileTranscribe(result.text, transcriptionId);
       } else {
         alert('Error en transcripción: ' + (result.error || 'Error desconocido'));
       }
@@ -75,7 +76,7 @@ export default function MenuPanel({ onStartRecording, onViewHistory, onClose, on
 
       if (result.success) {
         // Guardar en historial
-        await window.electronAPI.saveTranscription({
+        const saveResult = await window.electronAPI.saveTranscription({
           text: result.text,
           timestamp: Date.now(),
           duration: result.duration || null,
@@ -83,12 +84,14 @@ export default function MenuPanel({ onStartRecording, onViewHistory, onClose, on
           model: result.model || 'whisper-large-v3-turbo'
         });
 
+        const transcriptionId = saveResult?.id;
+
         // Cerrar modal y limpiar input
         setShowYoutubeModal(false);
         setYoutubeUrl('');
 
         // Mostrar resultado
-        onFileTranscribe(result.text);
+        onFileTranscribe(result.text, transcriptionId);
       } else {
         alert('Error en transcripción: ' + (result.error || 'Error desconocido'));
       }

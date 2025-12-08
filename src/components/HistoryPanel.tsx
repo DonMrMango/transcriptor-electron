@@ -20,6 +20,9 @@ export default function HistoryPanel({ onBack }: HistoryPanelProps) {
   const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -51,19 +54,59 @@ export default function HistoryPanel({ onBack }: HistoryPanelProps) {
 
   const handleItemClick = (item: Transcription) => {
     setSelectedItem(item);
+    setEditedText(item.text);
     setCopied(false);
+    setIsEditing(false);
   };
 
   const handleCopy = () => {
     if (selectedItem) {
-      navigator.clipboard.writeText(selectedItem.text);
+      const textToCopy = isEditing ? editedText : selectedItem.text;
+      navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (selectedItem) {
+      setEditedText(selectedItem.text);
+    }
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedItem) return;
+
+    setIsSaving(true);
+    try {
+      const result = await window.electronAPI.updateTranscription(selectedItem.id, editedText);
+      if (result.success) {
+        // Update local state
+        setSelectedItem({ ...selectedItem, text: editedText });
+        setTranscriptions(transcriptions.map(t =>
+          t.id === selectedItem.id ? { ...t, text: editedText } : t
+        ));
+        setIsEditing(false);
+      } else {
+        console.error('Error updating transcription:', result.error);
+        alert('Error al guardar la edición: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error updating transcription:', error);
+      alert('Error al guardar la edición');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleClose = () => {
     setSelectedItem(null);
+    setIsEditing(false);
   };
 
   const formatDate = (timestamp: number) => {
@@ -164,7 +207,16 @@ export default function HistoryPanel({ onBack }: HistoryPanelProps) {
             </div>
 
             <div className="modal-body">
-              <div className="transcription-text">{selectedItem.text}</div>
+              {isEditing ? (
+                <textarea
+                  className="transcription-textarea"
+                  value={editedText}
+                  onChange={(e) => setEditedText(e.target.value)}
+                  autoFocus
+                />
+              ) : (
+                <div className="transcription-text">{selectedItem.text}</div>
+              )}
             </div>
 
             <div className="modal-footer">
@@ -174,9 +226,35 @@ export default function HistoryPanel({ onBack }: HistoryPanelProps) {
                   <span>{formatDuration(selectedItem.duration)}</span>
                 )}
               </div>
-              <button className="copy-btn" onClick={handleCopy}>
-                {copied ? '✓ Copiado' : '📋 Copiar'}
-              </button>
+              <div className="modal-actions">
+                {isEditing ? (
+                  <>
+                    <button
+                      className="modal-cancel-btn"
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                    >
+                      ✕ Cancelar
+                    </button>
+                    <button
+                      className="modal-save-btn"
+                      onClick={handleSaveEdit}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? '⏳ Guardando...' : '💾 Guardar'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="copy-btn" onClick={handleCopy}>
+                      {copied ? '✓ Copiado' : '📋 Copiar'}
+                    </button>
+                    <button className="modal-edit-btn" onClick={handleEdit}>
+                      ✏️ Editar
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

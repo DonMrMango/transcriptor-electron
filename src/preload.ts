@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveTranscription: (data: any) => ipcRenderer.invoke('save-transcription', data),
   getHistory: () => ipcRenderer.invoke('get-history'),
   searchTranscriptions: (query: string) => ipcRenderer.invoke('search-transcriptions', query),
+  updateTranscription: (id: number, text: string) => ipcRenderer.invoke('update-transcription', id, text),
 
   // Keyboard shortcut listener
   onToggleRecording: (callback: () => void) => {
