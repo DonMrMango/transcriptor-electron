@@ -18,6 +18,7 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
   const [recordingTime, setRecordingTime] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const isCancelledRef = useRef(false);
@@ -33,9 +34,22 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
     }
 
     return () => {
+      console.log('[RECORDING] Component unmounting, cleaning up...');
       stopTimer();
+
+      // Detener el MediaRecorder si está activo
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
+      }
+
+      // IMPORTANTE: Liberar el stream del micrófono siempre
+      if (streamRef.current) {
+        console.log('[MICROPHONE] Releasing microphone on unmount...');
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('[MICROPHONE] Track stopped on unmount:', track.kind);
+        });
+        streamRef.current = null;
       }
     };
   }, []);
@@ -43,6 +57,7 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream; // Guardar referencia al stream
       const mediaRecorder = new MediaRecorder(stream);
 
       mediaRecorder.ondataavailable = (event) => {
@@ -57,7 +72,8 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
           handleTranscribe(audioBlob);
         }
-        stream.getTracks().forEach(track => track.stop());
+        // Liberar el stream
+        releaseStream();
       };
 
       // Iniciar grabación
@@ -68,6 +84,19 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
       console.error('Error accessing microphone:', error);
       alert('No se pudo acceder al micrófono');
       onBack();
+    }
+  };
+
+  // Función para liberar el stream del micrófono
+  const releaseStream = () => {
+    if (streamRef.current) {
+      console.log('[MICROPHONE] Releasing microphone stream...');
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log('[MICROPHONE] Track stopped:', track.kind);
+      });
+      streamRef.current = null;
+      console.log('[MICROPHONE] Microphone released successfully');
     }
   };
 
@@ -102,14 +131,22 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
   };
 
   const handleStop = () => {
+    console.log('[RECORDING] Stopping recording...');
+    stopTimer();
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      stopTimer();
+      // El stream se liberará en el evento onstop del MediaRecorder
+    } else {
+      // Si el MediaRecorder ya está inactivo, liberar el stream manualmente
+      releaseStream();
     }
+
     onStop();
   };
 
   const handleCancel = () => {
+    console.log('[RECORDING] Canceling recording...');
     // Marcar como cancelado para evitar transcripción
     isCancelledRef.current = true;
 
@@ -120,11 +157,14 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
       // Detener el MediaRecorder
       if (mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
+        // El stream se liberará en el evento onstop
+      } else {
+        // Si ya está inactivo, liberar manualmente
+        releaseStream();
       }
-
-      // Detener todos los tracks del stream
-      const stream = mediaRecorderRef.current.stream;
-      stream.getTracks().forEach(track => track.stop());
+    } else {
+      // Si no hay MediaRecorder, liberar stream directamente
+      releaseStream();
     }
 
     // Limpiar los chunks
