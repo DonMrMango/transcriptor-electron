@@ -9,7 +9,8 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "clean:ports": "lsof -ti:3000,3333,9000,9333 | xargs kill -9 2>/dev/null || echo '✓ No residual processes found'"
   },
   "keywords": [],
   "author": "damo",

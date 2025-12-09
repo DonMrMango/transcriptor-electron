@@ -26,6 +26,10 @@ const config: ForgeConfig = {
     new AutoUnpackNativesPlugin({}),
     new WebpackPlugin({
       mainConfig,
+      // Configure ports to avoid EADDRINUSE conflicts
+      // Note: These are fixed ports, but less commonly used than 3000/9000
+      port: 3333,        // Renderer dev server port (default is 3000)
+      loggerPort: 9333,  // Logger port (default is 9000)
       renderer: {
         config: rendererConfig,
         entryPoints: [

@@ -5,6 +5,18 @@ cd "$(dirname "$0")"
 
 echo "🚀 Iniciando Transcriptor Electron..."
 
+# Limpiar procesos residuales en puertos comunes
+echo "🧹 Verificando procesos residuales..."
+PORTS=(3000 3333 9000 9333)
+for PORT in "${PORTS[@]}"; do
+    PID=$(lsof -ti:$PORT 2>/dev/null)
+    if [ -n "$PID" ]; then
+        echo "⚠️  Puerto $PORT ocupado por proceso $PID, cerrando..."
+        kill -9 $PID 2>/dev/null
+        sleep 0.5
+    fi
+done
+
 # Verificar/actualizar dependencias de Node.js
 if [ ! -d "node_modules" ]; then
     echo "📦 Instalando dependencias de Node.js..."
