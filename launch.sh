@@ -10,8 +10,16 @@ if [ ! -d "node_modules" ]; then
     echo "📦 Instalando dependencias de Node.js..."
     npm install
 else
-    echo "🔄 Verificando dependencias de Node.js..."
-    npm install
+    # Verificar si package.json cambió desde la última instalación
+    if [ "package.json" -nt "node_modules" ]; then
+        echo "⚠️  Detectados cambios en package.json"
+        echo "🧹 Limpiando instalación anterior..."
+        rm -rf node_modules package-lock.json
+        echo "📦 Instalando dependencias desde cero..."
+        npm install
+    else
+        echo "✅ Dependencias de Node.js actualizadas"
+    fi
 fi
 
 # Verificar/crear entorno virtual de Python
