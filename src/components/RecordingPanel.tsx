@@ -88,7 +88,7 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
   };
 
   // Función para liberar el stream del micrófono
-  const releaseStream = () => {
+  const releaseStream = async () => {
     if (streamRef.current) {
       console.log('[MICROPHONE] Releasing microphone stream...');
       console.log('[MICROPHONE] Active tracks before stop:', streamRef.current.getTracks().length);
@@ -112,6 +112,15 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
 
       streamRef.current = null;
       console.log('[MICROPHONE] Microphone released successfully');
+
+      // WORKAROUND: Forzar re-evaluación de permisos enumerando dispositivos
+      // Esto ayuda a macOS a actualizar el indicador
+      try {
+        await navigator.mediaDevices.enumerateDevices();
+        console.log('[MICROPHONE] Forced permission re-evaluation');
+      } catch (error) {
+        console.error('[MICROPHONE] Error enumerating devices:', error);
+      }
     } else {
       console.log('[MICROPHONE] No stream to release');
     }

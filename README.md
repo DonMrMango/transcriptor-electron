@@ -141,6 +141,18 @@ rm -rf .webpack
 npm start
 ```
 
+## Limitaciones Conocidas
+
+### Indicador de micrófono en macOS
+
+**Problema:** En macOS, el indicador naranja del micrófono puede permanecer activo después de detener la grabación, aunque el micrófono ya no esté siendo utilizado.
+
+**Causa:** Esta es una limitación conocida de Electron en macOS ([Issue #44466](https://github.com/electron/electron/issues/44466)). macOS mantiene el indicador activo mientras el proceso de Electron tenga permisos de micrófono activos, independientemente de si el stream está activo o no.
+
+**Verificación:** El micrófono SÍ se libera correctamente (puedes verificarlo en los logs de la consola), pero el indicador visual de macOS no se actualiza hasta que cierras la aplicación.
+
+**Workaround:** Cerrar y volver a abrir la aplicación apagará el indicador. Esto es normal en muchas aplicaciones de Electron (Discord, Zoom, etc.).
+
 ## Solución de problemas
 
 ### Error: "Module not found" (Python)
