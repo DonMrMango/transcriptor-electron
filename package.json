@@ -29,20 +29,21 @@
     "@electron-forge/plugin-webpack": "7.10.2",
     "@electron/fuses": "1.8.0",
     "@types/better-sqlite3": "7.6.13",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
+    "@types/react": "18.2.48",
+    "@types/react-dom": "18.2.18",
     "@typescript-eslint/eslint-plugin": "5.62.0",
     "@typescript-eslint/parser": "5.62.0",
     "@vercel/webpack-asset-relocator-loader": "1.7.3",
     "css-loader": "6.11.0",
-    "electron": "39.2.4",
+    "electron": "28.2.0",
     "eslint": "8.57.1",
     "eslint-plugin-import": "2.32.0",
     "fork-ts-checker-webpack-plugin": "7.3.0",
     "node-loader": "2.1.0",
     "style-loader": "3.3.4",
     "ts-loader": "9.5.4",
-    "typescript": "4.5.5"
+    "typescript": "5.3.3",
+    "@types/node": "20.11.19"
   },
   "dependencies": {
     "better-sqlite3": "12.5.0",
@@ -52,8 +53,8 @@
     "pdf2pic": "3.2.0",
     "pdfjs-dist": "5.4.394",
     "pdfkit": "0.17.2",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "sharp": "0.34.4"
   }
 }
