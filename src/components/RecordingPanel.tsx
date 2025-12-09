@@ -72,8 +72,8 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
           const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
           handleTranscribe(audioBlob);
         }
-        // Liberar el stream
-        releaseStream();
+        // Nota: El stream ya se liberó en handleStop() o handleCancel()
+        // No es necesario liberarlo nuevamente aquí
       };
 
       // Iniciar grabación
@@ -136,11 +136,11 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      // El stream se liberará en el evento onstop del MediaRecorder
-    } else {
-      // Si el MediaRecorder ya está inactivo, liberar el stream manualmente
-      releaseStream();
     }
+
+    // IMPORTANTE: Liberar el stream INMEDIATAMENTE, no esperar al evento onstop
+    // Esto asegura que el indicador de micrófono se apague de inmediato en macOS
+    releaseStream();
 
     onStop();
   };
@@ -153,19 +153,12 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
     // Detener la grabación sin transcribir
     stopTimer();
 
-    if (mediaRecorderRef.current) {
-      // Detener el MediaRecorder
-      if (mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-        // El stream se liberará en el evento onstop
-      } else {
-        // Si ya está inactivo, liberar manualmente
-        releaseStream();
-      }
-    } else {
-      // Si no hay MediaRecorder, liberar stream directamente
-      releaseStream();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
     }
+
+    // IMPORTANTE: Liberar el stream INMEDIATAMENTE
+    releaseStream();
 
     // Limpiar los chunks
     chunksRef.current = [];
