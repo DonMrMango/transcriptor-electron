@@ -17,6 +17,25 @@ if (require('electron-squirrel-startup')) {
 // Global reference to the main window
 let mainWindow: BrowserWindow | null = null;
 
+// Get Python executable from venv
+function getPythonPath(): string {
+  const isWindows = process.platform === 'win32';
+  const venvPython = isWindows
+    ? path.join(__dirname, '../../venv/Scripts/python.exe')
+    : path.join(__dirname, '../../venv/bin/python3');
+
+  // Check if venv python exists
+  if (fs.existsSync(venvPython)) {
+    console.log('[PYTHON] Using venv Python:', venvPython);
+    return venvPython;
+  }
+
+  // Fallback to system python (with warning)
+  console.warn('[PYTHON] WARNING: venv not found at:', venvPython);
+  console.warn('[PYTHON] Falling back to system Python. This may cause dependency issues.');
+  return isWindows ? 'python' : 'python3';
+}
+
 const createWindow = (): void => {
   // Create a compact widget-style window
   mainWindow = new BrowserWindow({
@@ -77,6 +96,37 @@ function initDatabase() {
   } catch (error) {
     console.error('[DB] Error initializing database:', error);
   }
+}
+
+// Check if venv exists and show warning if not
+function checkVenvExists(): boolean {
+  const isWindows = process.platform === 'win32';
+  const venvPython = isWindows
+    ? path.join(__dirname, '../../venv/Scripts/python.exe')
+    : path.join(__dirname, '../../venv/bin/python3');
+
+  if (!fs.existsSync(venvPython)) {
+    console.error('[VENV] ERROR: Virtual environment not found!');
+    console.error('[VENV] Expected at:', venvPython);
+    console.error('[VENV] Please run: ./launch.sh (or create venv manually)');
+
+    // Show error dialog to user
+    dialog.showErrorBox(
+      'Python Virtual Environment Not Found',
+      'El entorno virtual de Python no se encuentra instalado.\n\n' +
+      'Por favor ejecuta el script de instalación:\n' +
+      './launch.sh\n\n' +
+      'O manualmente:\n' +
+      'python3 -m venv venv\n' +
+      'source venv/bin/activate\n' +
+      'pip install -r python-engine/requirements.txt'
+    );
+
+    return false;
+  }
+
+  console.log('[VENV] ✓ Virtual environment found at:', venvPython);
+  return true;
 }
 
 // Setup IPC handlers once (globally)
@@ -201,7 +251,10 @@ function setupIPC() {
 
       // Llamar al CLI de Python directamente con el archivo
       return new Promise((resolve) => {
-        const python = spawn('python3', [
+        const pythonPath = getPythonPath();
+        console.log('[TRANSCRIBE_FILE] Using Python:', pythonPath);
+
+        const python = spawn(pythonPath, [
           pythonCli,
           'transcribe',
           filePath,
@@ -274,7 +327,10 @@ function setupIPC() {
 
       // Llamar al CLI de Python con el comando youtube
       return new Promise((resolve) => {
-        const python = spawn('python3', [
+        const pythonPath = getPythonPath();
+        console.log('[TRANSCRIBE_YOUTUBE] Using Python:', pythonPath);
+
+        const python = spawn(pythonPath, [
           pythonCli,
           'youtube',
           youtubeUrl,
@@ -358,7 +414,10 @@ function setupIPC() {
       // Llamar al CLI de Python
       return new Promise((resolve, reject) => {
         console.log('[TRANSCRIBE] Spawning Python process...');
-        const python = spawn('python3', [
+        const pythonPath = getPythonPath();
+        console.log('[TRANSCRIBE] Using Python:', pythonPath);
+
+        const python = spawn(pythonPath, [
           pythonCli,
           'transcribe',
           audioPath,
@@ -865,6 +924,14 @@ function setupIPC() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
+  // Check venv first
+  if (!checkVenvExists()) {
+    console.error('[APP] Cannot start without virtual environment');
+    // Don't quit immediately, let user see the error dialog
+    setTimeout(() => app.quit(), 5000);
+    return;
+  }
+
   initDatabase();
   setupIPC();
   createWindow();

@@ -23,24 +23,50 @@ Aplicación de escritorio para transcripción de audio usando Groq API (Whisper)
 - **Python 3** (v3.8 o superior)
 - **pip** (gestor de paquetes de Python)
 
-## Instalación
+## Instalación y Uso
 
-### 1. Clonar el repositorio
+### Instalación Automática (Recomendado)
+
+La forma más sencilla de instalar y ejecutar la aplicación es usando el script `launch.sh`:
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/DonMrMango/transcriptor-electron.git
+cd transcriptor-electron
+
+# Ejecutar script de instalación y lanzamiento
+./launch.sh
+```
+
+El script `launch.sh` hace todo automáticamente:
+- ✅ Instala dependencias de Node.js (si no existen)
+- ✅ Crea el entorno virtual de Python (si no existe)
+- ✅ Instala dependencias de Python en el venv
+- ✅ Limpia cache de webpack
+- ✅ Lanza la aplicación
+
+**Nota:** En Windows, deberás crear un script equivalente `.bat` o seguir la instalación manual.
+
+### Instalación Manual
+
+Si prefieres instalar manualmente:
+
+#### 1. Clonar el repositorio
 
 ```bash
 git clone https://github.com/DonMrMango/transcriptor-electron.git
 cd transcriptor-electron
 ```
 
-### 2. Instalar dependencias de Node.js
+#### 2. Instalar dependencias de Node.js
 
 ```bash
 npm install
 ```
 
-### 3. Configurar entorno virtual de Python
+#### 3. Configurar entorno virtual de Python
 
-Es **altamente recomendado** usar un entorno virtual para evitar conflictos de dependencias:
+**IMPORTANTE:** La aplicación requiere un entorno virtual de Python para funcionar correctamente:
 
 ```bash
 # Crear entorno virtual
@@ -54,7 +80,7 @@ source venv/bin/activate
 venv\Scripts\activate
 ```
 
-### 4. Instalar dependencias de Python
+#### 4. Instalar dependencias de Python
 
 Con el entorno virtual activado:
 
@@ -62,30 +88,21 @@ Con el entorno virtual activado:
 pip install -r python-engine/requirements.txt
 ```
 
-### 5. Configurar API Key de Groq
+#### 5. Lanzar la aplicación
+
+```bash
+npm start
+```
+
+### Configurar API Key de Groq
 
 Al iniciar la aplicación por primera vez, se te pedirá tu API key de Groq.
 
 Si no tienes una, puedes obtenerla gratis en: [https://console.groq.com](https://console.groq.com)
 
 La API key se guardará localmente en:
-- macOS/Linux: `~/.config/transcriptor-electron/api-key.txt`
-- Windows: `%APPDATA%/transcriptor-electron/api-key.txt`
-
-## Uso
-
-### Iniciar la aplicación
-
-**IMPORTANTE**: Asegúrate de tener el entorno virtual activado antes de lanzar la app:
-
-```bash
-# Activar entorno virtual (si no está activado)
-source venv/bin/activate  # macOS/Linux
-# venv\Scripts\activate   # Windows
-
-# Lanzar la aplicación
-npm start
-```
+- macOS/Linux: `~/.config/transcriptor-electron/groq_api_key.txt`
+- Windows: `%APPDATA%/transcriptor-electron/groq_api_key.txt`
 
 ### Acceso directo en macOS
 
