@@ -34,6 +34,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchTranscriptions: (query: string) => ipcRenderer.invoke('search-transcriptions', query),
   updateTranscription: (id: number, text: string) => ipcRenderer.invoke('update-transcription', id, text),
 
+  // Microphone control
+  forceReleaseMicrophone: () => ipcRenderer.invoke('force-release-microphone'),
+
   // Keyboard shortcut listener
   onToggleRecording: (callback: () => void) => {
     ipcRenderer.on('toggle-recording', callback);

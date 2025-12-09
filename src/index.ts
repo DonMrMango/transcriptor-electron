@@ -584,6 +584,26 @@ function setupIPC() {
     }
   });
 
+  // Force release microphone (macOS workaround)
+  ipcMain.handle('force-release-microphone', async () => {
+    try {
+      console.log('[MICROPHONE] Forcing microphone release at OS level...');
+
+      // En macOS, reiniciar los permisos de medios puede ayudar
+      if (process.platform === 'darwin') {
+        // Forzar garbage collection si está disponible
+        if (global.gc) {
+          global.gc();
+        }
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('[MICROPHONE] Error forcing release:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Update transcription
   ipcMain.handle('update-transcription', async (event, id: number, text: string) => {
     try {

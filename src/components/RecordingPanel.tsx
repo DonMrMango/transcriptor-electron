@@ -91,12 +91,29 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
   const releaseStream = () => {
     if (streamRef.current) {
       console.log('[MICROPHONE] Releasing microphone stream...');
+      console.log('[MICROPHONE] Active tracks before stop:', streamRef.current.getTracks().length);
+
       streamRef.current.getTracks().forEach(track => {
+        console.log('[MICROPHONE] Track state before stop:', track.readyState);
         track.stop();
-        console.log('[MICROPHONE] Track stopped:', track.kind);
+        console.log('[MICROPHONE] Track state after stop:', track.readyState);
+        console.log('[MICROPHONE] Track stopped:', track.kind, track.label);
+
+        // Verificar que realmente se detuvo
+        if (track.readyState !== 'ended') {
+          console.error('[MICROPHONE] WARNING: Track did not stop properly!');
+        }
       });
+
+      // Remover todos los tracks del stream
+      streamRef.current.getTracks().forEach(track => {
+        streamRef.current?.removeTrack(track);
+      });
+
       streamRef.current = null;
       console.log('[MICROPHONE] Microphone released successfully');
+    } else {
+      console.log('[MICROPHONE] No stream to release');
     }
   };
 
@@ -130,7 +147,7 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
     }
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
     console.log('[RECORDING] Stopping recording...');
     stopTimer();
 
@@ -141,6 +158,13 @@ const RecordingPanel = forwardRef<RecordingPanelRef, RecordingPanelProps>(
     // IMPORTANTE: Liberar el stream INMEDIATAMENTE, no esperar al evento onstop
     // Esto asegura que el indicador de micrófono se apague de inmediato en macOS
     releaseStream();
+
+    // Forzar liberación a nivel del sistema operativo (macOS workaround)
+    try {
+      await window.electronAPI.forceReleaseMicrophone();
+    } catch (error) {
+      console.error('[MICROPHONE] Error forcing release at OS level:', error);
+    }
 
     onStop();
   };
