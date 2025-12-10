@@ -288,7 +288,17 @@ function setupIPC() {
           }
 
           try {
-            const result = JSON.parse(outputData);
+            // Extraer solo el JSON válido (puede haber mensajes de progreso antes)
+            let jsonString = outputData;
+            const jsonStart = outputData.indexOf('{');
+            const jsonEnd = outputData.lastIndexOf('}');
+
+            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+              jsonString = outputData.substring(jsonStart, jsonEnd + 1);
+              console.log('[TRANSCRIBE_FILE] Extracted JSON from output');
+            }
+
+            const result = JSON.parse(jsonString);
             console.log('[TRANSCRIBE_FILE] Parsed result:', result);
 
             // Copiar al clipboard
@@ -300,6 +310,7 @@ function setupIPC() {
             resolve(result);
           } catch (err) {
             console.error('[TRANSCRIBE_FILE] Error parsing JSON:', err);
+            console.log('[TRANSCRIBE_FILE] Raw output was:', outputData);
             resolve({ success: false, error: 'Error parsing JSON: ' + err });
           }
         });
@@ -364,7 +375,17 @@ function setupIPC() {
           }
 
           try {
-            const result = JSON.parse(outputData);
+            // Extraer solo el JSON válido (puede haber mensajes de progreso antes)
+            let jsonString = outputData;
+            const jsonStart = outputData.indexOf('{');
+            const jsonEnd = outputData.lastIndexOf('}');
+
+            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+              jsonString = outputData.substring(jsonStart, jsonEnd + 1);
+              console.log('[TRANSCRIBE_YOUTUBE] Extracted JSON from output');
+            }
+
+            const result = JSON.parse(jsonString);
             console.log('[TRANSCRIBE_YOUTUBE] Parsed result:', result);
 
             // Copiar al clipboard
@@ -376,6 +397,7 @@ function setupIPC() {
             resolve(result);
           } catch (err) {
             console.error('[TRANSCRIBE_YOUTUBE] Error parsing JSON:', err);
+            console.log('[TRANSCRIBE_YOUTUBE] Raw output was:', outputData);
             resolve({ success: false, error: 'Error parsing JSON: ' + err });
           }
         });
@@ -461,7 +483,18 @@ function setupIPC() {
 
           try {
             console.log('[TRANSCRIBE] Parsing JSON output:', outputData);
-            const result = JSON.parse(outputData);
+
+            // Extraer solo el JSON válido (puede haber mensajes de progreso antes)
+            let jsonString = outputData;
+            const jsonStart = outputData.indexOf('{');
+            const jsonEnd = outputData.lastIndexOf('}');
+
+            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+              jsonString = outputData.substring(jsonStart, jsonEnd + 1);
+              console.log('[TRANSCRIBE] Extracted JSON from output');
+            }
+
+            const result = JSON.parse(jsonString);
             console.log('[TRANSCRIBE] Parsed result:', result);
 
             // Copiar al clipboard automáticamente
