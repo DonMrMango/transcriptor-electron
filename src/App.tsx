@@ -5,8 +5,9 @@ import MenuPanel from './components/MenuPanel';
 import RecordingPanel, { RecordingPanelRef } from './components/RecordingPanel';
 import ResultPanel from './components/ResultPanel';
 import HistoryPanel from './components/HistoryPanel';
+import PDFToolsPanel from './components/PDFToolsPanel';
 
-export type AppState = 'menu' | 'recording' | 'transcribing' | 'result' | 'history';
+export type AppState = 'menu' | 'recording' | 'transcribing' | 'result' | 'history' | 'pdf-split';
 
 export type Section = 'transcription' | 'pdf';
 
@@ -390,7 +391,7 @@ function App() {
         <MenuPanel
           onStartRecording={handleStartRecording}
           onViewHistory={handleViewHistory}
-          onClose={() => {}}
+          onClose={handleBack}
           onFileTranscribe={handleTranscribeComplete}
           currentSection={currentSection}
           onSectionChange={handleSectionChange}
@@ -414,7 +415,7 @@ function App() {
               <span className="btn-description">Unir múltiples PDFs en uno</span>
             </button>
 
-            <button className="menu-btn file-btn" onClick={handleOpenSplitModal}>
+            <button className="menu-btn file-btn" onClick={() => setState('pdf-split')}>
               <span className="btn-icon">✂️</span>
               <span className="btn-label">Dividir PDF</span>
               <span className="btn-description">Separar páginas específicas</span>
@@ -474,6 +475,12 @@ function App() {
 
       {state === 'history' && (
         <HistoryPanel
+          onBack={handleBack}
+        />
+      )}
+
+      {state === 'pdf-split' && (
+        <PDFToolsPanel
           onBack={handleBack}
         />
       )}

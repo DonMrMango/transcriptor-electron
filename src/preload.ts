@@ -56,4 +56,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // PDF Conversions
   imagesToPdf: () => ipcRenderer.invoke('images-to-pdf'),
   pdfToImages: (filePath: string) => ipcRenderer.invoke('pdf-to-images', filePath),
+
+  // PDF Split Tools
+  splitPdfByRanges: (filePath: string, pages: number[]) => ipcRenderer.invoke('split-pdf-by-ranges', filePath, pages),
+  splitPdfFixedRanges: (filePath: string, rangeSize: number) => ipcRenderer.invoke('split-pdf-fixed-ranges', filePath, rangeSize),
+  splitPdfExtractAll: (filePath: string) => ipcRenderer.invoke('split-pdf-extract-all', filePath),
+  splitPdfSelectPages: (filePath: string, pages: number[], separateFiles: boolean) => ipcRenderer.invoke('split-pdf-select-pages', filePath, pages, separateFiles),
+  splitPdfByRangeGroups: (filePath: string, rangeGroups: number[][]) => ipcRenderer.invoke('split-pdf-by-range-groups', filePath, rangeGroups),
 });

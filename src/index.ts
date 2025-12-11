@@ -971,6 +971,253 @@ function setupIPC() {
       return { success: false, error: error.message };
     }
   });
+
+  // PDF Split Tools - Custom Ranges (single PDF)
+  ipcMain.handle('split-pdf-by-ranges', async (event, filePath: string, pages: number[]) => {
+    try {
+      console.log('[PDF] Splitting PDF by custom ranges:', filePath, 'Pages:', pages);
+
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfBytes = fs.readFileSync(filePath);
+      const sourcePdf = await PDFDocument.load(pdfBytes);
+
+      // Create new PDF with selected pages
+      const newPdf = await PDFDocument.create();
+      const copiedPages = await newPdf.copyPages(sourcePdf, pages);
+      copiedPages.forEach((page) => newPdf.addPage(page));
+
+      // Save PDF
+      const splitPdfBytes = await newPdf.save();
+
+      // Ask user where to save
+      const saveResult = await dialog.showSaveDialog(mainWindow!, {
+        defaultPath: 'custom_range.pdf',
+        filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      // Write to file
+      fs.writeFileSync(saveResult.filePath!, Buffer.from(splitPdfBytes));
+
+      console.log('[PDF] Custom range PDF saved to:', saveResult.filePath);
+      return { success: true, filePath: saveResult.filePath };
+    } catch (error: any) {
+      console.error('[PDF] Error splitting PDF by ranges:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Split Tools - Fixed Ranges (multiple PDFs)
+  ipcMain.handle('split-pdf-fixed-ranges', async (event, filePath: string, rangeSize: number) => {
+    try {
+      console.log('[PDF] Splitting PDF by fixed ranges:', filePath, 'Range size:', rangeSize);
+
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfBytes = fs.readFileSync(filePath);
+      const sourcePdf = await PDFDocument.load(pdfBytes);
+      const totalPages = sourcePdf.getPageCount();
+
+      // Ask user where to save
+      const saveResult = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Selecciona carpeta para guardar los archivos'
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      const outputDir = saveResult.filePaths[0];
+      const baseName = path.basename(filePath, '.pdf');
+      const savedFiles: string[] = [];
+
+      // Split into fixed range chunks
+      let fileIndex = 1;
+      for (let i = 0; i < totalPages; i += rangeSize) {
+        const endPage = Math.min(i + rangeSize, totalPages);
+        const pageIndices = Array.from({ length: endPage - i }, (_, idx) => i + idx);
+
+        const newPdf = await PDFDocument.create();
+        const copiedPages = await newPdf.copyPages(sourcePdf, pageIndices);
+        copiedPages.forEach((page) => newPdf.addPage(page));
+
+        const pdfBytes = await newPdf.save();
+        const fileName = `${baseName}_parte_${fileIndex}.pdf`;
+        const filePath = path.join(outputDir, fileName);
+
+        fs.writeFileSync(filePath, Buffer.from(pdfBytes));
+        savedFiles.push(filePath);
+        fileIndex++;
+      }
+
+      console.log('[PDF] Fixed range PDFs saved:', savedFiles.length);
+      return { success: true, count: savedFiles.length, directory: outputDir };
+    } catch (error: any) {
+      console.error('[PDF] Error splitting PDF by fixed ranges:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Split Tools - Extract All Pages
+  ipcMain.handle('split-pdf-extract-all', async (event, filePath: string) => {
+    try {
+      console.log('[PDF] Extracting all pages from PDF:', filePath);
+
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfBytes = fs.readFileSync(filePath);
+      const sourcePdf = await PDFDocument.load(pdfBytes);
+      const totalPages = sourcePdf.getPageCount();
+
+      // Ask user where to save
+      const saveResult = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Selecciona carpeta para guardar las páginas'
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      const outputDir = saveResult.filePaths[0];
+      const savedFiles: string[] = [];
+
+      // Create individual PDF for each page
+      for (let i = 0; i < totalPages; i++) {
+        const newPdf = await PDFDocument.create();
+        const [copiedPage] = await newPdf.copyPages(sourcePdf, [i]);
+        newPdf.addPage(copiedPage);
+
+        const pdfBytes = await newPdf.save();
+        const fileName = `pagina_${i + 1}.pdf`;
+        const filePath = path.join(outputDir, fileName);
+
+        fs.writeFileSync(filePath, Buffer.from(pdfBytes));
+        savedFiles.push(filePath);
+      }
+
+      console.log('[PDF] All pages extracted:', savedFiles.length);
+      return { success: true, count: savedFiles.length, directory: outputDir };
+    } catch (error: any) {
+      console.error('[PDF] Error extracting all pages:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Split Tools - Select Pages
+  ipcMain.handle('split-pdf-select-pages', async (event, filePath: string, pages: number[], separateFiles: boolean) => {
+    try {
+      console.log('[PDF] Splitting selected pages:', filePath, 'Pages:', pages, 'Separate:', separateFiles);
+
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfBytes = fs.readFileSync(filePath);
+      const sourcePdf = await PDFDocument.load(pdfBytes);
+
+      if (separateFiles) {
+        // Create individual PDFs for each page
+        const saveResult = await dialog.showOpenDialog(mainWindow!, {
+          properties: ['openDirectory', 'createDirectory'],
+          title: 'Selecciona carpeta para guardar las páginas'
+        });
+
+        if (saveResult.canceled) {
+          return { success: false, canceled: true };
+        }
+
+        const outputDir = saveResult.filePaths[0];
+        const savedFiles: string[] = [];
+
+        for (const pageIndex of pages) {
+          const newPdf = await PDFDocument.create();
+          const [copiedPage] = await newPdf.copyPages(sourcePdf, [pageIndex]);
+          newPdf.addPage(copiedPage);
+
+          const pdfBytes = await newPdf.save();
+          const fileName = `pagina_${pageIndex + 1}.pdf`;
+          const filePath = path.join(outputDir, fileName);
+
+          fs.writeFileSync(filePath, Buffer.from(pdfBytes));
+          savedFiles.push(filePath);
+        }
+
+        console.log('[PDF] Selected pages extracted:', savedFiles.length);
+        return { success: true, count: savedFiles.length, directory: outputDir };
+      } else {
+        // Create single PDF with all selected pages
+        const newPdf = await PDFDocument.create();
+        const copiedPages = await newPdf.copyPages(sourcePdf, pages);
+        copiedPages.forEach((page) => newPdf.addPage(page));
+
+        const splitPdfBytes = await newPdf.save();
+
+        const saveResult = await dialog.showSaveDialog(mainWindow!, {
+          defaultPath: 'selected_pages.pdf',
+          filters: [{ name: 'PDF Files', extensions: ['pdf'] }]
+        });
+
+        if (saveResult.canceled) {
+          return { success: false, canceled: true };
+        }
+
+        fs.writeFileSync(saveResult.filePath!, Buffer.from(splitPdfBytes));
+
+        console.log('[PDF] Selected pages PDF saved to:', saveResult.filePath);
+        return { success: true, filePath: saveResult.filePath };
+      }
+    } catch (error: any) {
+      console.error('[PDF] Error splitting selected pages:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // PDF Split Tools - By Range Groups
+  ipcMain.handle('split-pdf-by-range-groups', async (event, filePath: string, rangeGroups: number[][]) => {
+    try {
+      console.log('[PDF] Splitting by range groups:', filePath, 'Groups:', rangeGroups);
+
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfBytes = fs.readFileSync(filePath);
+      const sourcePdf = await PDFDocument.load(pdfBytes);
+
+      const saveResult = await dialog.showOpenDialog(mainWindow!, {
+        properties: ['openDirectory', 'createDirectory'],
+        title: 'Selecciona carpeta para guardar los PDFs'
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, canceled: true };
+      }
+
+      const outputDir = saveResult.filePaths[0];
+      const savedFiles: string[] = [];
+
+      for (let i = 0; i < rangeGroups.length; i++) {
+        const pageGroup = rangeGroups[i];
+        const newPdf = await PDFDocument.create();
+        const copiedPages = await newPdf.copyPages(sourcePdf, pageGroup);
+        copiedPages.forEach((page) => newPdf.addPage(page));
+
+        const pdfBytes = await newPdf.save();
+        const startPage = pageGroup[0] + 1;
+        const endPage = pageGroup[pageGroup.length - 1] + 1;
+        const fileName = pageGroup.length === 1
+          ? `pagina_${startPage}.pdf`
+          : `paginas_${startPage}-${endPage}.pdf`;
+        const outputPath = path.join(outputDir, fileName);
+
+        fs.writeFileSync(outputPath, Buffer.from(pdfBytes));
+        savedFiles.push(outputPath);
+      }
+
+      console.log('[PDF] Range groups created:', savedFiles.length);
+      return { success: true, count: savedFiles.length, directory: outputDir };
+    } catch (error: any) {
+      console.error('[PDF] Error splitting by range groups:', error);
+      return { success: false, error: error.message };
+    }
+  });
 }
 
 // This method will be called when Electron has finished

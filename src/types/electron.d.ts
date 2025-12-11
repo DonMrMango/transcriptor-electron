@@ -26,6 +26,11 @@ export interface ElectronAPI {
   splitPdfIndividual: (filePath: string, pages: number[]) => Promise<any>;
   imagesToPdf: () => Promise<any>;
   pdfToImages: (filePath: string) => Promise<any>;
+  splitPdfByRanges: (filePath: string, pages: number[]) => Promise<any>;
+  splitPdfFixedRanges: (filePath: string, rangeSize: number) => Promise<any>;
+  splitPdfExtractAll: (filePath: string) => Promise<any>;
+  splitPdfSelectPages: (filePath: string, pages: number[], separateFiles: boolean) => Promise<any>;
+  splitPdfByRangeGroups: (filePath: string, rangeGroups: number[][]) => Promise<any>;
 }
 
 declare global {
