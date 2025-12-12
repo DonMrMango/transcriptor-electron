@@ -26,7 +26,7 @@ const config: ForgeConfig = {
     // macOS DMG installer
     new MakerDMG({
       name: 'Transcriptor',
-      background: './assets/dmg-background.png', // Optional: custom DMG background
+      // background: './assets/dmg-background.png', // Optional: custom DMG background
       format: 'ULFO',
     }, ['darwin']),
     // macOS ZIP (alternative to DMG)
@@ -35,7 +35,7 @@ const config: ForgeConfig = {
     new MakerSquirrel({
       name: 'Transcriptor',
       // iconUrl: 'https://example.com/icon.ico', // Optional: URL to icon for shortcuts
-      setupIcon: './assets/icons/icon.ico', // Icon for installer (when you have it)
+      // setupIcon: './assets/icons/icon.ico', // Icon for installer (when you have it)
     }),
     // Linux packages
     new MakerDeb({
