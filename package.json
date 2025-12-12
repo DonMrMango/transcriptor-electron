@@ -1,9 +1,13 @@
 {
   "name": "transcriptor-electron",
-  "productName": "transcriptor-electron",
+  "productName": "Transcriptor",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Aplicación de transcripción de audio con IA, herramientas PDF y más",
   "main": ".webpack/main",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DonMrMango/transcriptor-electron.git"
+  },
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
@@ -49,7 +53,9 @@
   "dependencies": {
     "better-sqlite3": "12.5.0",
     "canvas": "3.2.0",
+    "electron-log": "^5.2.4",
     "electron-squirrel-startup": "1.0.1",
+    "electron-updater": "^6.3.9",
     "pdf-lib": "1.17.1",
     "pdf2pic": "3.2.0",
     "pdfjs-dist": "5.4.394",
@@ -57,5 +63,31 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "sharp": "0.34.4"
+  },
+  "build": {
+    "appId": "com.transcriptor.app",
+    "productName": "Transcriptor",
+    "files": [
+      "**/*",
+      "!**/*.ts",
+      "!*.code-workspace",
+      "!README.md",
+      "!venv/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "DonMrMango",
+      "repo": "transcriptor-electron"
+    }
   }
 }
